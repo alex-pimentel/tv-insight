@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 import httpx
+import pytest
 import pytest_asyncio
 
 from tests.conftest import SERIES_ID
@@ -361,3 +362,26 @@ class TestPlatform:
 
         assert response.status_code == 200
         assert "/api/series/search" in response.json()["paths"]
+
+    async def test_openapi_document_describes_errors(self, client: httpx.AsyncClient) -> None:
+        document = (await client.get("/api/openapi.json")).json()
+
+        # The shared error responses put the error model in the contract, which is
+        # what lets the generated TypeScript client type the failures too.
+        assert "ErrorModel" in document["components"]["schemas"]
+        responses = document["paths"]["/api/series/{series_id}"]["get"]["responses"]
+        assert set(responses) >= {"200", "404", "502"}
+
+    @pytest.mark.parametrize("path", ["/api/docs", "/api-docs", "/docs"])
+    async def test_swagger_ui_is_served_from_a_cdn(
+        self, client: httpx.AsyncClient, path: str
+    ) -> None:
+        response = await client.get(path)
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        body = response.text
+        # The page reads our document and loads the UI assets from the CDN.
+        assert "/api/openapi.json" in body
+        assert "cdn.jsdelivr.net/npm/swagger-ui-dist" in body
+        assert "swagger-ui" in body

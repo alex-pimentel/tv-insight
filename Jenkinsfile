@@ -92,6 +92,33 @@ pipeline {
                         }
                     }
                 }
+                stage('Contract') {
+                    parallel {
+                        stage('openapi drift') {
+                            agent {
+                                docker { image "${PYTHON_IMAGE}"; args '-u root' }
+                            }
+                            steps {
+                                sh '''
+                                    pip install --quiet -e "backend[dev]"
+                                    ( cd backend && python -m tv_insight.presentation.openapi /tmp/openapi.json )
+                                    diff -u frontend/openapi.json /tmp/openapi.json
+                                '''
+                            }
+                        }
+                        stage('generated client') {
+                            agent {
+                                docker { image "${NODE_IMAGE}"; args '-u root' }
+                            }
+                            steps {
+                                dir('frontend') {
+                                    sh 'npm ci --no-audit --no-fund'
+                                    sh 'npm run client:check'
+                                }
+                            }
+                        }
+                    }
+                }
                 stage('Type check') {
                     parallel {
                         stage('mypy') {
@@ -160,6 +187,22 @@ pipeline {
                             junit testResults: 'frontend/reports/vitest.xml', allowEmptyResults: true
                         }
                     }
+                }
+            }
+        }
+
+        stage('Mutation (domain, non-blocking)') {
+            agent {
+                docker { image "${PYTHON_IMAGE}"; args '-u root' }
+            }
+            steps {
+                // A mutation score is a quality signal, not a gate: an unstable
+                // stage must not fail the build, but the number stays visible.
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh '''
+                        pip install --quiet -e "backend[dev]"
+                        cd backend && python -m mutmut run --max-children 2
+                    '''
                 }
             }
         }

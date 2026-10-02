@@ -5,13 +5,18 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from tv_insight.presentation.api.dependencies import ContainerDep, ViewerIdDep
+from tv_insight.presentation.api.responses import ERROR_RESPONSES
 from tv_insight.presentation.api.schemas import (
     EpisodeDetailModel,
     EpisodeModel,
     WatchRequest,
 )
 
-router = APIRouter(prefix="/series/{series_id}/episodes", tags=["episodes"])
+router = APIRouter(
+    prefix="/series/{series_id}/episodes",
+    tags=["episodes"],
+    responses=ERROR_RESPONSES,
+)
 
 
 @router.get("/{episode_id}", response_model=EpisodeDetailModel, summary="Episode details")

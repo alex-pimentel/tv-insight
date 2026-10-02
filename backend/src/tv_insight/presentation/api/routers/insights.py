@@ -5,9 +5,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from tv_insight.presentation.api.dependencies import ContainerDep
+from tv_insight.presentation.api.responses import ERROR_RESPONSES
 from tv_insight.presentation.api.schemas import InsightsResponse
 
-router = APIRouter(prefix="/series/{series_id}", tags=["insights"])
+router = APIRouter(
+    prefix="/series/{series_id}",
+    tags=["insights"],
+    responses=ERROR_RESPONSES,
+)
 
 
 @router.get("/insight", response_model=InsightsResponse, summary="Insight for a series")

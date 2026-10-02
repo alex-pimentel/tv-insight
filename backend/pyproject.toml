@@ -31,6 +31,7 @@ dev = [
     "respx>=0.21.1",
     "ruff>=0.7.0",
     "mypy>=1.11.2",
+    "mutmut>=3.2.0",
 ]
 
 [project.scripts]
@@ -87,3 +88,14 @@ packages = ["tv_insight"]
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
+
+[tool.mutmut]
+# The whole `src` tree is copied (so the package imports resolve inside the
+# mutant sandbox), but only the domain is mutated: it is pure, has no
+# infrastructure and its tests run in milliseconds, so a full sweep is
+# affordable. Mutating the outer layers would multiply the runtime to prove what
+# the fakes already pin.
+source_paths = ["src"]
+only_mutate = ["src/tv_insight/domain/*"]
+# Run only the fast unit tests for each mutant, and stop at the first failure.
+pytest_add_cli_args_test_selection = ["tests/unit/domain", "-q", "-x"]

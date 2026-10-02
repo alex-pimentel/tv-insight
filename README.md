@@ -118,21 +118,25 @@ ladder:
 
 | Level | Scope | Count | Notes |
 | --- | --- | --- | --- |
-| 1. Domain unit | value objects, entities, season grouping, progress, prompt rules, insight freshness | 96 | no I/O at all, milliseconds |
-| 2. Use case unit | every use case against in-memory fakes, including the insight store | 51 | no framework, no database |
-| 3. Infrastructure unit | mappers, HTTP adapter, cache, provider chain, heuristic, config, composition | 166 | `respx` for HTTP, injected clocks |
-| 4. Presentation + integration | app factory/lifespan, session, the real ASGI contract and real PostgreSQL repositories | 55 | DB tests skip automatically without a database |
+| 1. Domain unit | value objects, entities, season grouping, progress, prompt rules, insight freshness | 97 | no I/O at all, milliseconds |
+| 2. Use case unit | every use case against in-memory fakes, including the insight store | 58 | no framework, no database |
+| 3. Infrastructure unit | mappers, HTTP adapter, cache, provider chain, heuristic, config, composition | 170 | `respx` for HTTP, injected clocks |
+| 4. Presentation + integration | app factory/lifespan, session, the real ASGI contract and real PostgreSQL repositories | 61 | DB tests skip automatically without a database |
 | 5. System / E2E | built bundle in Chromium against the real API and database | 11 | official Playwright image |
 
 ```bash
 make test          # backend + frontend
 make test-e2e      # browser suite against the running stack (docker compose up first)
+make client        # regenerate the TypeScript client from the backend OpenAPI
+make mutation      # mutation testing on the domain (mutmut)
 ```
 
-Backend: **380 tests**, **98 % coverage without a database and 99.8 % with
-PostgreSQL**, `ruff` clean, `mypy --strict` clean.
-Frontend: `tsc` strict clean, **ESLint clean (type-aware)**, **93 Vitest component
-tests**, 99 % statement coverage.
+Backend: **386 tests**, **98 % coverage without a database and 99.8 % with
+PostgreSQL**, `ruff` clean, `mypy --strict` clean, and **mutation testing on the
+domain** (`make mutation`).
+Frontend: `tsc` strict clean, **ESLint clean (type-aware)**, **95 Vitest component
+tests**, 99 % statement coverage, and a **TypeScript client generated from the
+OpenAPI document** (`make client`).
 
 Coverage is a build gate, not a report: `pytest --cov-fail-under=90` in the
 Makefile, CI and Jenkinsfile, and thresholds in `vite.config.ts`. There is a
@@ -181,7 +185,9 @@ built from and whether it was reused:
 }
 ```
 
-Interactive docs: <http://localhost:7777/api/docs>.
+Interactive docs: <http://localhost:7777/api-docs> (also `/docs` and `/api/docs`).
+Swagger UI is loaded from a CDN, so the documentation bundle never enters the
+application image.
 
 Errors always answer with the same shape, mapped from the application's error
 taxonomy (`InvalidInput` → 400, `ResourceNotFound` → 404, `ExternalServiceError` →

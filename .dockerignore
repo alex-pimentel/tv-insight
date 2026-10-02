@@ -12,5 +12,7 @@
 **/.coverage
 **/coverage.xml
 **/htmlcov
+**/backend/mutants
+**/backend/.mutmut-cache
 **/.env
 **/*.log

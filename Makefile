@@ -13,7 +13,7 @@ PY ?= $(VENV)/bin/python
 
 .PHONY: help up down build logs ps restart migrate revision shell db-shell \
         install test test-backend test-frontend test-e2e lint typecheck fmt \
-        run dev clean
+        run dev clean openapi client client-check mutation
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -101,3 +101,19 @@ typecheck: ## mypy (strict) + tsc
 
 fmt: ## Auto-fix formatting and imports (backend)
 	cd $(BACKEND) && $(abspath $(PY)) -m ruff check --fix .
+
+# ---------------------------------------------------------------------------
+# API contract
+# ---------------------------------------------------------------------------
+
+openapi: ## Dump the backend OpenAPI document to frontend/openapi.json
+	cd $(BACKEND) && $(abspath $(PY)) -m tv_insight.presentation.openapi ../$(FRONTEND)/openapi.json
+
+client: openapi ## Regenerate the TypeScript client from the OpenAPI document
+	cd $(FRONTEND) && npm run client
+
+client-check: ## Fail if the generated client is stale (CI)
+	cd $(FRONTEND) && npm run client:check
+
+mutation: ## Mutation testing on the domain (mutmut; see [tool.mutmut])
+	cd $(BACKEND) && $(abspath $(PY)) -m mutmut run

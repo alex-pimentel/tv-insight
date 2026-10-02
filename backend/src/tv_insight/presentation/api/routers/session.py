@@ -13,8 +13,9 @@ from fastapi import APIRouter, Response, status
 from pydantic import BaseModel
 
 from tv_insight.presentation.api.dependencies import VIEWER_COOKIE
+from tv_insight.presentation.api.responses import ERROR_RESPONSES
 
-router = APIRouter(prefix="/session", tags=["session"])
+router = APIRouter(prefix="/session", tags=["session"], responses=ERROR_RESPONSES)
 
 
 class SessionModel(BaseModel):

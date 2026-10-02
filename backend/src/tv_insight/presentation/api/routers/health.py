@@ -11,9 +11,10 @@ from fastapi import APIRouter, Response, status
 
 from tv_insight.infrastructure.ai.factory import describe_providers
 from tv_insight.presentation.api.dependencies import ContainerDep
+from tv_insight.presentation.api.responses import ERROR_RESPONSES
 from tv_insight.presentation.api.schemas import HealthModel, ProviderStatus
 
-router = APIRouter(tags=["health"])
+router = APIRouter(tags=["health"], responses=ERROR_RESPONSES)
 
 VERSION = "1.0.0"
 

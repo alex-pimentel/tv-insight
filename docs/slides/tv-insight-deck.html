@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tv-insight — Alex Gomes</title>
+<style>
+/* ============================================================
+   THEME — Swiss Claro (Swiss Modern, offline / system fonts)
+   ============================================================ */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --accent: #ff3300;
+  --accent-secondary: #0066ff;
+  --font-heading: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --title-size: clamp(2rem, 5.5vw, 4.5rem);
+  --body-size: clamp(0.95rem, 1.7vw, 1.35rem);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================
+   VIEWPORT BASE CSS — mandatory (see html-slides/assets)
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overflow-x: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+.slide {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* dynamic viewport height (iOS Safari) */
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(1.5rem, 4vw, 4rem);
+  scroll-snap-align: start;
+}
+
+.slide-content {
+  width: 100%;
+  max-width: min(90vw, 1200px);
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.slide-title {
+  font-family: var(--font-heading);
+  font-size: var(--title-size);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: clamp(0.5rem, 2vw, 1.5rem);
+}
+
+.slide-subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.75rem);
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  margin-bottom: clamp(0.5rem, 1.5vw, 1rem);
+}
+
+.slide-body { font-size: var(--body-size); line-height: 1.6; color: var(--text-primary); }
+.slide-caption { font-size: clamp(0.7rem, 1.2vw, 0.9rem); color: var(--text-secondary); }
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(1rem, 2vw, 2rem); width: 100%; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: clamp(1rem, 2vw, 2rem); width: 100%; }
+.split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 3vw, 3rem); width: 100%; align-items: center; }
+.split-layout.asymmetric { grid-template-columns: 3fr 2fr; }
+
+@media (max-height: 700px) { .slide { padding: clamp(1rem, 2vw, 2rem); } .slide-title { font-size: clamp(1.5rem, 5vw, 3rem); } }
+@media (max-height: 600px) { .slide-subtitle { display: none; } .nav { display: none; } }
+@media (max-height: 500px) { .slide { padding: 0.75rem; } .slide-title { font-size: clamp(1.2rem, 4vw, 2rem); } .slide-body { font-size: clamp(0.75rem, 1.5vw, 1rem); } }
+@media (max-width: 600px) { .split-layout, .split-layout.asymmetric { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } .nav { display: none; } }
+
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s var(--ease-out-expo), transform .6s var(--ease-out-expo); }
+.reveal-scale { opacity: 0; transform: scale(.95); transition: opacity .6s var(--ease-out-expo), transform .6s var(--ease-out-expo); }
+.reveal-left { opacity: 0; transform: translateX(-30px); transition: opacity .6s var(--ease-out-expo), transform .6s var(--ease-out-expo); }
+.reveal.visible, .reveal-scale.visible, .reveal-left.visible { opacity: 1; transform: none; }
+.reveal.stagger-1 { transition-delay: .08s; }
+.reveal.stagger-2 { transition-delay: .16s; }
+.reveal.stagger-3 { transition-delay: .24s; }
+.reveal.stagger-4 { transition-delay: .32s; }
+.reveal.stagger-5 { transition-delay: .40s; }
+.reveal.stagger-6 { transition-delay: .48s; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; scroll-snap-type: none; }
+  .reveal, .reveal-scale, .reveal-left { opacity: 1; transform: none; transition: none; }
+}
+
+.nav { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); display: flex; gap: .5rem; z-index: 100; }
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-secondary); border: none; cursor: pointer; transition: all .3s ease; padding: 0; }
+.nav-dot.active { background: var(--accent); transform: scale(1.3); }
+.nav-dot.appendix { background: transparent; border: 1px solid var(--text-secondary); }
+
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--accent); transition: width .3s ease; z-index: 100; }
+
+.code-block {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 2px;
+  padding: clamp(.75rem, 1.5vw, 1.4rem);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: clamp(.62rem, 1.12vw, .92rem);
+  line-height: 1.5;
+  white-space: pre;
+  max-height: min(46vh, 380px);
+}
+.code-block .c { color: #7dd3fc; }
+.code-block .k { color: #fca5a5; }
+.code-block .s { color: #86efac; }
+
+/* ============================================================
+   SWISS CLARO — grid, accent bars, numbering
+   ============================================================ */
+.slide {
+  background-color: var(--bg-primary);
+  background-image:
+    linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+.slide::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: var(--accent); }
+
+.slide-number {
+  position: absolute; top: clamp(1.1rem, 2vw, 2rem); right: clamp(1.1rem, 2vw, 2rem);
+  font-family: var(--font-mono); font-size: clamp(.72rem, 1.2vw, .95rem);
+  color: var(--text-secondary); letter-spacing: .12em;
+}
+.slide-owner {
+  position: absolute; bottom: clamp(1.1rem, 2vw, 2rem); left: clamp(1.1rem, 2vw, 2rem);
+  font-family: var(--font-mono); font-size: clamp(.65rem, 1vw, .8rem);
+  color: var(--text-secondary); letter-spacing: .14em; text-transform: uppercase;
+}
+.rule { width: 64px; height: 6px; background: var(--accent); margin-bottom: clamp(.8rem, 1.6vw, 1.4rem); }
+.eyebrow { font-family: var(--font-mono); font-size: clamp(.7rem, 1.2vw, .9rem); letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: .6rem; }
+
+.bullets { list-style: none; display: grid; gap: clamp(.55rem, 1.3vw, 1rem); margin-top: clamp(.8rem, 2vw, 1.4rem); }
+.bullets li { position: relative; padding-left: 2.1rem; font-size: var(--body-size); line-height: 1.5; }
+.bullets li::before { content: ''; position: absolute; left: 0; top: .55em; width: 1.15rem; height: .28rem; background: var(--accent); }
+.bullets.compact li { font-size: clamp(.85rem, 1.45vw, 1.1rem); }
+
+table { width: 100%; border-collapse: collapse; margin-top: clamp(.6rem, 1.4vw, 1.2rem); font-size: clamp(.72rem, 1.3vw, 1.05rem); }
+th, td { text-align: left; padding: clamp(.4rem, .9vw, .75rem) clamp(.5rem, 1vw, .9rem); border-bottom: 1px solid #e4e4e7; vertical-align: top; }
+th { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .1em; font-size: .72em; color: var(--text-secondary); border-bottom: 2px solid var(--text-primary); }
+tbody tr:nth-child(even) { background: var(--bg-secondary); }
+table.mini { font-size: clamp(.64rem, 1.15vw, .92rem); }
+table.mini th, table.mini td { padding: clamp(.3rem, .7vw, .55rem) clamp(.4rem, .8vw, .7rem); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: clamp(.6rem, 1.4vw, 1.2rem); margin-top: clamp(1rem, 2.4vw, 2rem); }
+.metric { border-top: 3px solid var(--accent); padding-top: .6rem; }
+.metric .num { font-family: var(--font-heading); font-weight: 700; font-size: clamp(1.5rem, 4vw, 3rem); letter-spacing: -.02em; }
+.metric .lbl { font-family: var(--font-mono); font-size: clamp(.62rem, 1vw, .8rem); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .1em; }
+
+.card { border: 1px solid #e4e4e7; border-left: 5px solid var(--accent); padding: clamp(.8rem, 1.6vw, 1.3rem); background: #fff; }
+.card h3 { font-family: var(--font-heading); font-size: clamp(.95rem, 1.7vw, 1.3rem); margin-bottom: .3rem; letter-spacing: -.01em; }
+.card p { color: var(--text-secondary); font-size: clamp(.78rem, 1.3vw, 1rem); line-height: 1.45; }
+.card.accent-blue { border-left-color: var(--accent-secondary); }
+
+.kicker { font-family: var(--font-mono); font-size: clamp(.7rem, 1.15vw, .9rem); color: var(--text-secondary); margin-top: 1.2rem; }
+.inline-code { font-family: var(--font-mono); font-size: .88em; background: var(--bg-secondary); border: 1px solid #e4e4e7; padding: .05em .35em; }
+.hl { color: var(--accent); font-weight: 700; }
+.hook { font-family: var(--font-heading); font-size: clamp(1.3rem, 3.1vw, 2.5rem); line-height: 1.18; letter-spacing: -.02em; }
+.contact { font-family: var(--font-mono); font-size: clamp(.7rem, 1.15vw, .92rem); color: var(--text-secondary); margin-top: clamp(1rem, 2vw, 1.8rem); }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: clamp(.6rem, 1vw, .76rem); letter-spacing: .16em; text-transform: uppercase; color: #fff; background: var(--accent); padding: .28em .6em; }
+.callout { border-left: 6px solid var(--accent); padding: .3rem 0 .3rem clamp(.8rem,1.6vw,1.4rem); }
+.roadmap { counter-reset: step; list-style: none; display: grid; gap: clamp(.7rem,1.6vw,1.2rem); margin-top: clamp(.8rem,1.8vw,1.4rem); }
+.roadmap li { position: relative; padding-left: 2.8rem; font-size: var(--body-size); line-height: 1.45; }
+.roadmap li::before { counter-increment: step; content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: .1em; font-family: var(--font-mono); font-size: .9em; font-weight: 700; color: var(--accent); }
+
+.section-divider { background: var(--accent); background-image: none; }
+.section-divider::before { display: none; }
+.section-divider .slide-title { color: #fff; }
+.section-divider .eyebrow { color: rgba(255,255,255,.85); }
+.section-divider .slide-number, .section-divider .slide-owner { color: rgba(255,255,255,.85); }
+.appendix .eyebrow { color: var(--accent-secondary); }
+
+@media print {
+  html { scroll-snap-type: none; }
+  .slide { page-break-after: always; height: 100vh; overflow: hidden; }
+  .nav, .progress-bar, .nav-dot { display: none; }
+  .reveal, .reveal-scale, .reveal-left { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress" aria-hidden="true"></div>
+
+<!-- 1 — COVER -->
+<section class="slide" id="slide-1">
+  <span class="slide-number">01 / 18</span>
+  <div class="slide-content">
+    <span class="tag reveal">Technical assignment · Software Architect</span>
+    <h1 class="slide-title reveal stagger-1" style="margin-top:1rem;">tv-insight</h1>
+    <p class="slide-subtitle reveal stagger-2">Clean Architecture on a small scope — and an AI feature with no AI in the use case.</p>
+    <div class="contact reveal stagger-3">
+      <strong style="color:var(--text-primary)">Alex Gomes</strong> · alex@agenteresolve.com.br<br>
+      React 19 · FastAPI · PostgreSQL — <span class="inline-code">make up</span> → localhost:7777
+    </div>
+  </div>
+  <span class="slide-owner">tv-insight</span>
+</section>
+
+<!-- 2 — HOOK -->
+<section class="slide" id="slide-2">
+  <span class="slide-number">02 / 18</span>
+  <div class="slide-content">
+    <p class="eyebrow reveal">The brief</p>
+    <p class="hook reveal stagger-1">A deliberately small app — that is the test.</p>
+    <ul class="bullets" style="margin-top:clamp(1rem,2.2vw,1.8rem);">
+      <li class="reveal stagger-2">Four features: <strong>search</strong>, <strong>watch-tracking</strong>, <strong>comments</strong>, <strong>one AI insight</strong>. The features are the easy part.</li>
+      <li class="reveal stagger-3">The hard questions are at the <strong>seams</strong>: where do vendor failures go, how do you bound a model bill, how do you test without the network?</li>
+      <li class="reveal stagger-4">So the budget went to the boundaries. Every decision ahead is justified by <strong>what it makes testable</strong>.</li>
+    </ul>
+  </div>
+  <span class="slide-owner">Hook</span>
+</section>
+
+<!-- 3 — AGENDA -->
+<section class="slide" id="slide-3">
+  <span class="slide-number">03 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Agenda</h2>
+    <div class="grid-2" style="margin-top: clamp(1rem,2vw,1.8rem);">
+      <div class="card reveal stagger-2"><h3>01 · The one decision</h3><p>Clean Architecture and the dependency rule you can verify in ten seconds.</p></div>
+      <div class="card accent-blue reveal stagger-3"><h3>02 · Four layers</h3><p>What each layer owns, and what that ownership buys.</p></div>
+      <div class="card reveal stagger-4"><h3>03 · The AI feature</h3><p>A provider-agnostic port, a domain rule, an honest fallback.</p></div>
+      <div class="card accent-blue reveal stagger-5"><h3>04 · Data, limits &amp; process</h3><p>Degradation, caching, where it would break, and how I worked with the client.</p></div>
+    </div>
+    <p class="kicker reveal stagger-6">05 · Ops and tests at four levels · appendix for peer review.</p>
+  </div>
+  <span class="slide-owner">Agenda</span>
+</section>
+
+<!-- 4 — OVERVIEW -->
+<section class="slide" id="slide-4">
+  <span class="slide-number">04 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">In one slide</h2>
+    <ul class="bullets">
+      <li class="reveal stagger-1">Search TV series on the public <strong>TVMaze API</strong>; browse episodes by season.</li>
+      <li class="reveal stagger-2">Mark episodes <strong>watched</strong> — the state persists. Comment on a series or an episode.</li>
+      <li class="reveal stagger-3">An <strong>AI insight</strong> for either, behind a provider-agnostic port with a real fallback strategy.</li>
+      <li class="reveal stagger-4">Two containers, one command: <span class="inline-code">make up</span>.</li>
+    </ul>
+    <div class="metrics">
+      <div class="metric reveal stagger-3"><div class="num">386</div><div class="lbl">Backend tests</div></div>
+      <div class="metric reveal stagger-4"><div class="num">95</div><div class="lbl">Component tests</div></div>
+      <div class="metric reveal stagger-5"><div class="num">11</div><div class="lbl">E2E (Chromium)</div></div>
+      <div class="metric reveal stagger-6"><div class="num">321<small style="font-size:.5em">MB</small></div><div class="lbl">Image, non-root</div></div>
+    </div>
+  </div>
+  <span class="slide-owner">Overview</span>
+</section>
+
+<!-- 5 — ONE DECISION -->
+<section class="slide" id="slide-5">
+  <span class="slide-number">05 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">The one decision everything follows from</h2>
+    <div class="split-layout asymmetric" style="margin-top: 1rem;">
+      <div class="reveal-left">
+        <p class="slide-body">Clean Architecture, four layers, with the <strong>dependency rule</strong> enforced by import direction.</p>
+        <p class="slide-body" style="margin-top:1rem;color:var(--text-secondary)">Nothing points outward. The domain imports <strong>only the standard library</strong>.</p>
+      </div>
+      <div class="reveal stagger-2">
+        <div class="code-block"><span class="c"># verify it in ten seconds</span>
+grep -rn <span class="s">"^import\|^from"</span> \
+  src/tv_insight/domain \
+  | grep -v tv_insight</div>
+      </div>
+    </div>
+    <div class="code-block reveal stagger-3" style="margin-top:1.4rem;max-height:none;">presentation  <span class="k">→</span>  application  <span class="k">→</span>  domain        <span class="c">(nothing points outward)</span>
+infrastructure <span class="k">─────────────┘</span></div>
+    <p class="kicker reveal stagger-4">That is why the domain tests need no database, no HTTP and no fixtures — and run in milliseconds.</p>
+  </div>
+  <span class="slide-owner">Architecture</span>
+</section>
+
+<!-- 6 — LAYERS -->
+<section class="slide" id="slide-6">
+  <span class="slide-number">06 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">What lives where — and what it buys</h2>
+    <table class="reveal stagger-2">
+      <thead><tr><th>Layer</th><th>Owns</th><th>Buys</th></tr></thead>
+      <tbody>
+        <tr><td><strong>domain</strong></td><td>invariants, season grouping, watch arithmetic, what an insight may be based on</td><td>rules testable with zero infrastructure</td></tr>
+        <tr><td><strong>application</strong></td><td>one class per use case, and the ports</td><td>features read as sequences of business steps</td></tr>
+        <tr><td><strong>infrastructure</strong></td><td>TVMaze adapter, LLM adapters, SQL, composition root</td><td>vendors are replaceable and absent from the inner layers</td></tr>
+        <tr><td><strong>presentation</strong></td><td>HTTP contract, status codes, cookie identity, the SPA</td><td>the framework lives only at the edge</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <span class="slide-owner">Architecture</span>
+</section>
+
+<!-- 7 — VALUE OBJECTS -->
+<section class="slide" id="slide-7">
+  <span class="slide-number">07 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Make invalid states unrepresentable</h2>
+    <div class="split-layout" style="margin-top:.6rem;">
+      <div class="reveal-left">
+        <div class="code-block">SeriesId(0)            <span class="c"># InvalidValue</span>
+CommentText(<span class="s">"   "</span>)       <span class="c"># InvalidValue</span>
+Comment(target=SERIES,
+        episode_id=42) <span class="c"># InvalidValue</span></div>
+      </div>
+      <div class="reveal stagger-2">
+        <p class="slide-body">The <span class="inline-code">Comment</span> invariant lives in the entity, so no use case has to remember it.</p>
+        <p class="slide-body" style="margin-top:.9rem">One translation point maps domain errors → application errors → HTTP: <strong>400</strong> · <strong>404</strong> · <strong>502</strong> · <strong>503</strong>.</p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-owner">Domain</span>
+</section>
+
+<!-- 8 — REQUEST FLOW -->
+<section class="slide" id="slide-8">
+  <span class="slide-number">08 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Request flow: the series detail screen</h2>
+    <div class="code-block reveal stagger-2" style="margin-top:.8rem;max-height:none;">GET /api/series/169
+  ├─ TVMaze /shows/169            <span class="c">(TTL cache 300s)</span>
+  ├─ TVMaze /shows/169/episodes   <span class="c">(TTL cache 300s)</span>
+  ├─ SELECT watched_episodes      ┐
+  ├─ SELECT comments              ├─ <span class="k">one transaction (Unit of Work)</span>
+  └─ SELECT count(comments)       ┘
+  ↓
+  domain: WatchProgressService → per-season and overall progress
+  ↓
+  one JSON response → one round trip → one loading state → one error state</div>
+    <p class="kicker reveal stagger-3">Trade-off (D5): the use case knows about four things; the UI gets one call.</p>
+  </div>
+  <span class="slide-owner">Application</span>
+</section>
+
+<!-- 9 — DIVIDER -->
+<section class="slide section-divider" id="slide-9">
+  <span class="slide-number">09 / 18</span>
+  <div class="slide-content" style="text-align:center;">
+    <p class="eyebrow reveal">Section 03</p>
+    <h2 class="slide-title reveal stagger-1">The AI feature</h2>
+    <p class="slide-subtitle reveal stagger-2" style="color:rgba(255,255,255,.9);">…and why the use case contains no AI.</p>
+  </div>
+  <span class="slide-owner">AI insight</span>
+</section>
+
+<!-- 10 — AI COMPOSITION -->
+<section class="slide" id="slide-10">
+  <span class="slide-number">10 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">A port, a domain rule, and a chain</h2>
+    <div class="split-layout" style="margin-top:.6rem;">
+      <div class="code-block reveal-left">GenerateInsight
+  ├─ build InsightSubject
+  │    (summary, genres, comments)
+  ├─ InsightPromptComposer
+  │    <span class="c">← a DOMAIN service</span>
+  └─ provider.generate(request)
+       <span class="c">← a PORT</span>
+
+FallbackInsightProvider
+  ├─ HuggingFace  <span class="c">(needs a token)</span>
+  └─ heuristic    <span class="c">(always answers)</span></div>
+      <div class="reveal stagger-2">
+        <p class="slide-body">The <strong>rule</strong> (what an insight may be based on) lives in the domain. The <strong>vendor</strong> lives outside, behind a port.</p>
+        <p class="slide-body" style="margin-top:1rem">Adding a vendor is <span class="hl">one class plus one registry line</span>. No use case, port or test double changes.</p>
+        <p class="kicker" style="margin-top:1.1rem">Prompt text as domain is the debatable part — the rule it encodes is not.</p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-owner">AI insight</span>
+</section>
+
+<!-- 11 — DECISION MATRIX -->
+<section class="slide" id="slide-11">
+  <span class="slide-number">11 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">The decision matrix, in order</h2>
+    <table class="reveal stagger-2">
+      <thead><tr><th>Model providers</th><th>Stored insight</th><th>Answer</th></tr></thead>
+      <tbody>
+        <tr><td>answered</td><td>any</td><td>the fresh answer — persisted as <strong>last known good</strong></td></tr>
+        <tr><td>failed</td><td>exists</td><td>the stored answer (<span class="inline-code">cached</span>, <span class="inline-code">degraded</span>, with a note)</td></tr>
+        <tr><td>failed</td><td>empty</td><td>the heuristic (<span class="inline-code">degraded</span>)</td></tr>
+      </tbody>
+    </table>
+    <p class="slide-caption reveal stagger-3" style="margin-top:1rem;">Every <strong>explicit</strong> click tries the providers first. Nothing is requested on page load. Only model answers are persisted.</p>
+  </div>
+  <span class="slide-owner">AI insight</span>
+</section>
+
+<!-- 12 — FAILURE -->
+<section class="slide" id="slide-12">
+  <span class="slide-number">12 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Failure is a first-class outcome</h2>
+    <ul class="bullets compact">
+      <li class="reveal stagger-1"><span class="inline-code">InsightResult</span> reports <strong>provider</strong>, <strong>degraded</strong>, <strong>cached</strong> and <strong>notes</strong>.</li>
+      <li class="reveal stagger-2">The UI says <em>“via heuristic — offline fallback”</em>. No pretending.</li>
+      <li class="reveal stagger-3">429 is reported immediately and the chain moves on — degrading fast beats waiting.</li>
+      <li class="reveal stagger-4">Catalogue retries transport errors only, never a 500 (that is an answer).</li>
+      <li class="reveal stagger-5">Upstream errors are normalised in the adapter; no <span class="inline-code">httpx</span> exception reaches a use case.</li>
+    </ul>
+  </div>
+  <span class="slide-owner">Resilience</span>
+</section>
+
+<!-- 13 — CACHING -->
+<section class="slide" id="slide-13">
+  <span class="slide-number">13 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Caching without a stampede</h2>
+    <div class="split-layout" style="margin-top:.5rem;">
+      <div class="reveal-left">
+        <p class="slide-body"><span class="inline-code">AsyncTtlCache.get_or_create</span> takes a <strong>per-key asyncio lock</strong>: 25 concurrent identical requests trigger <span class="hl">one</span> upstream call. Asserted in <span class="inline-code">test_cache.py</span>.</p>
+        <ul class="bullets compact" style="margin-top:1rem;">
+          <li class="reveal stagger-2">Catalogue reads: TTL 300s — TVMaze is public and rate-limited.</li>
+          <li class="reveal stagger-3">Insights: TTL 900s keyed on the prompt hash. <strong>Regenerate</strong> bypasses with <span class="inline-code">?refresh=true</span>.</li>
+        </ul>
+      </div>
+      <div class="reveal stagger-2">
+        <table class="mini" style="margin-top:0;">
+          <thead><tr><th>Table</th><th>Key / index</th></tr></thead>
+          <tbody>
+            <tr><td>comments</td><td>(series_id, target, created_at)</td></tr>
+            <tr><td>comments</td><td>(episode_id, created_at)</td></tr>
+            <tr><td>watched_episodes</td><td>(viewer_id, episode_id) PK</td></tr>
+            <tr><td>watched_episodes</td><td>(viewer_id, series_id)</td></tr>
+          </tbody>
+        </table>
+        <p class="kicker" style="margin-top:.9rem">timestamptz · Alembic in the entrypoint · <span class="inline-code">alembic check</span> clean · one tx per use case.</p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-owner">Data</span>
+</section>
+
+<!-- 14 — LIMITS IN PRODUCTION -->
+<section class="slide" id="slide-14">
+  <span class="slide-number">14 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Where it would break, and why I built it this way anyway</h2>
+    <ul class="bullets compact">
+      <li class="reveal stagger-1"><strong>Cache is per process.</strong> The asyncio lock does not cross replicas: N pods = N upstream calls. Redis is the fix.</li>
+      <li class="reveal stagger-2"><strong>Migrations in the entrypoint.</strong> <span class="inline-code">alembic upgrade head</span> on every replica can race; production moves it to a release job.</li>
+      <li class="reveal stagger-3"><strong>Coverage is not quality.</strong> The domain is now <strong>mutation-tested</strong> (226 of 335 mutants killed, ~68%); property testing is still missing.</li>
+      <li class="reveal stagger-4"><strong>Auth is a guest cookie by design.</strong> <span class="inline-code">httpOnly</span>, SameSite=Lax; production wants OIDC, and identity is already isolated.</li>
+    </ul>
+    <p class="kicker reveal stagger-5">Each of these is a documented trade-off (docs/TRADEOFFS.md), not an accident.</p>
+  </div>
+  <span class="slide-owner">Honesty</span>
+</section>
+
+<!-- 15 — CLIENT COLLABORATION -->
+<section class="slide" id="slide-15">
+  <span class="slide-number">15 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">The architecture bent; it did not break</h2>
+    <table class="mini reveal stagger-2">
+      <thead><tr><th>Client question</th><th>Answer</th><th>What changed</th></tr></thead>
+      <tbody>
+        <tr><td>Fire insights on page view?</td><td>On the button</td><td>idle panel + explicit action; cost bounded by intent</td></tr>
+        <tr><td>Cache until N comments?</td><td>“1 is enough”</td><td>rule kept; default <strong>reversed</strong> to 0 = regenerate; store became the <em>failure</em> fallback</td></tr>
+        <tr><td>One container? through the backend?</td><td>“up to you”</td><td>single container, same origin; secrets + cache + one error vocabulary stay server-side</td></tr>
+      </tbody>
+    </table>
+    <p class="kicker reveal stagger-3">6 written questions, each mapped to the file that implements it (docs/CLIENT-FEEDBACK.md). The reversal cost: one environment variable.</p>
+  </div>
+  <span class="slide-owner">Process</span>
+</section>
+
+<!-- 16 — OPS -->
+<section class="slide" id="slide-16">
+  <span class="slide-number">16 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">One command, two containers</h2>
+    <div class="split-layout" style="margin-top:.6rem;">
+      <div class="code-block reveal-left">docker compose up --build -d   <span class="c"># make up</span>
+
+Dockerfile  stage 1  node:22
+              npm ci &amp;&amp; npm run build
+            stage 2  python:3.12-slim
+              alembic upgrade head
+              uvicorn → :7777
+            non-root · healthcheck · ~321 MB</div>
+      <div class="reveal stagger-2">
+        <ul class="bullets compact">
+          <li class="reveal stagger-2"><span class="inline-code">depends_on: service_healthy</span> + <span class="inline-code">pg_isready</span> → the app never races the database.</li>
+          <li class="reveal stagger-3">SPA and API share an origin → no CORS, and the guest cookie behaves in dev and prod.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <span class="slide-owner">Operations</span>
+</section>
+
+<!-- 17 — TESTS -->
+<section class="slide" id="slide-17">
+  <span class="slide-number">17 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">Testing at four levels — and what it does not prove</h2>
+    <table class="mini reveal stagger-2">
+      <thead><tr><th>Level</th><th>What it proves</th><th>Count</th></tr></thead>
+      <tbody>
+        <tr><td>Domain unit</td><td>invariants, grouping, progress, prompt rules, insight freshness</td><td>97</td></tr>
+        <tr><td>Use case unit</td><td>every use case against hand-written fakes, including the insight store</td><td>58</td></tr>
+        <tr><td>Infrastructure unit</td><td>mappers, HTTP adapter, cache, provider chain, heuristic, config</td><td>170</td></tr>
+        <tr><td>Presentation + integration</td><td>app factory, session, the real ASGI contract, PostgreSQL repositories</td><td>61</td></tr>
+        <tr><td>System / E2E</td><td>the built bundle in Chromium against the real API and database</td><td>11</td></tr>
+      </tbody>
+    </table>
+    <p class="kicker reveal stagger-3">Fakes implement the real ports, so a port change breaks the suite. The contract is generated from <strong>OpenAPI</strong> (Swagger UI at <span class="inline-code">/api-docs</span>) and CI fails on drift; the domain is mutation-tested (non-blocking, <strong>~68% killed</strong>). <span class="inline-code">ruff</span>/<span class="inline-code">mypy --strict</span> are a gate, not a metric.</p>
+  </div>
+  <span class="slide-owner">Quality</span>
+</section>
+
+<!-- 18 — CLOSING -->
+<section class="slide" id="slide-18">
+  <span class="slide-number">18 / 18</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.7rem,4vw,3rem);">If I had another week</h2>
+    <ol class="roadmap">
+      <li class="reveal stagger-2">Move the cache and the insight store to <strong>Redis</strong> — make the app horizontally honest.</li>
+      <li class="reveal stagger-3">Migrations as a <strong>release job</strong> + a smoke test against a canary.</li>
+      <li class="reveal stagger-4">Raise the domain <strong>mutation score</strong> (kill the 109 survivors) and add <strong>property tests</strong>.</li>
+    </ol>
+    <p class="contact reveal stagger-5">
+      Thanks — <strong style="color:var(--text-primary)">Alex Gomes</strong> · alex@agenteresolve.com.br<br>
+      <span class="inline-code">make up</span> → localhost:7777
+    </p>
+  </div>
+  <span class="slide-owner">Thank you</span>
+</section>
+
+<!-- APPENDIX A1 -->
+<section class="slide appendix" id="appendix-1">
+  <span class="slide-number">A1</span>
+  <div class="slide-content">
+    <div class="rule reveal"></div>
+    <h2 class="slide-title reveal stagger-1" style="font-size: clamp(1.6rem,3.6vw,2.7rem);">Appendix · the five files to read</h2>
+    <ol class="roadmap">
+      <li class="reveal stagger-2"><span class="inline-code">infrastructure/composition.py</span> — the entire object graph in one place.</li>
+      <li class="reveal stagger-3"><span class="inline-code">domain/entities/guide.py</span> — pure business logic (<span class="inline-code">seasons()</span>).</li>
+      <li class="reveal stagger-4"><span class="inline-code">application/use_cases/generate_insight.py</span> — the AI feature with no AI in it.</li>
+      <li class="reveal stagger-5"><span class="inline-code">infrastructure/ai/fallback.py</span> — the fallback composite.</li>
+      <li class="reveal stagger-6"><span class="inline-code">tests/integration/test_api.py</span> — the contract, end to end, in process.</li>
+    </ol>
+  </div>
+  <span class="slide-owner">Appendix</span>
+</section>
+
+<nav class="nav" id="nav" aria-label="Slides"></nav>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var nav = document.getElementById('nav');
+  var progress = document.getElementById('progress');
+  var current = 0;
+
+  slides.forEach(function (_, i) {
+    var dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '') + (slides[i].classList.contains('appendix') ? ' appendix' : '');
+    dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+    dot.addEventListener('click', function () { goToSlide(i); });
+    nav.appendChild(dot);
+  });
+
+  function goToSlide(index) {
+    if (index < 0 || index >= slides.length) return;
+    current = index;
+    slides[index].scrollIntoView({ behavior: 'smooth' });
+    updateNav();
+    reveal(index);
+  }
+
+  function updateNav() {
+    Array.prototype.forEach.call(document.querySelectorAll('.nav-dot'), function (dot, i) {
+      dot.classList.toggle('active', i === current);
+    });
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goToSlide(current + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goToSlide(current - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
+    else if (e.key === 'End') { e.preventDefault(); goToSlide(slides.length - 1); }
+  });
+
+  var touchY = 0;
+  document.addEventListener('touchstart', function (e) { touchY = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    var diff = touchY - e.changedTouches[0].clientY;
+    if (Math.abs(diff) > 50) goToSlide(current + (diff > 0 ? 1 : -1));
+  }, { passive: true });
+
+  function reveal(index) {
+    var slide = slides[index];
+    Array.prototype.forEach.call(
+      slide.querySelectorAll('.reveal, .reveal-scale, .reveal-left'),
+      function (el) { el.classList.add('visible'); }
+    );
+  }
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var index = slides.indexOf(entry.target);
+      current = index;
+      updateNav();
+      reveal(index);
+    });
+  }, { threshold: 0.5 });
+  slides.forEach(function (s) { observer.observe(s); });
+
+  reveal(0);
+  updateNav();
+})();
+</script>
+</body>
+</html>

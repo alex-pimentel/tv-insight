@@ -12,7 +12,8 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from tv_insight.infrastructure.composition import Container
@@ -32,6 +33,19 @@ logger = get_logger(__name__)
 
 API_PREFIX = "/api"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+# The interactive docs are served by Swagger UI loaded from a CDN: nothing is
+# bundled, so the API documentation never inflates the application image. The
+# assets are pinned to a major version so a breaking 6.x cannot silently change
+# how the document renders.
+SWAGGER_UI_VERSION = "5"
+SWAGGER_UI_JS = (
+    f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{SWAGGER_UI_VERSION}"
+    "/swagger-ui-bundle.js"
+)
+SWAGGER_UI_CSS = (
+    f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{SWAGGER_UI_VERSION}/swagger-ui.css"
+)
 
 
 def create_app(
@@ -81,9 +95,31 @@ def create_app(
 
     register_error_handlers(app)
     _register_routers(app)
+    _register_docs(app)
     _mount_frontend(app, resolved)
 
     return app
+
+
+def _register_docs(app: FastAPI) -> None:
+    """Expose the interactive Swagger UI on the expected paths.
+
+    FastAPI already serves it at ``/api/docs``; ``/api-docs`` and ``/docs`` are
+    added because they are the two entry points a reader reaches for. All three
+    render the same document (``/api/openapi.json``) with assets loaded from a
+    CDN, so the application image stays free of the documentation bundle.
+    """
+
+    async def docs() -> HTMLResponse:
+        return get_swagger_ui_html(
+            openapi_url=app.openapi_url or f"{API_PREFIX}/openapi.json",
+            title=f"{app.title} — API docs",
+            swagger_js_url=SWAGGER_UI_JS,
+            swagger_css_url=SWAGGER_UI_CSS,
+        )
+
+    app.add_api_route("/api-docs", docs, include_in_schema=False, methods=["GET"])
+    app.add_api_route("/docs", docs, include_in_schema=False, methods=["GET"])
 
 
 def _register_routers(app: FastAPI) -> None:

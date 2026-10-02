@@ -19,6 +19,10 @@ export default tseslint.config(
       "playwright-report/**",
       "test-results/**",
       "node_modules/**",
+      // Generated from the OpenAPI document; linting it would fight the generator.
+      "src/api/schema.d.ts",
+      // Plain Node build tooling, outside the app's browser TS project.
+      "scripts/**",
     ],
   },
   js.configs.recommended,

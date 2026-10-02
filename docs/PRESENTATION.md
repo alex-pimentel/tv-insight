@@ -24,7 +24,7 @@ per slide.
   fallback strategy.
 * Two containers, one command: `make up` → <http://localhost:7777>.
 
-Measured on the running stack: **380 backend tests**, **98 % coverage without a
+Measured on the running stack: **386 backend tests**, **98 % coverage without a
 database and 99.76 % with PostgreSQL**, `ruff` and `mypy --strict` clean, **95
 component tests**, **11 end-to-end tests** in Chromium. Application image:
 **321 MB**, Node present only in the build stage.
@@ -196,10 +196,10 @@ API - no CORS in practice, cookies behave.
 
 | Level | What it proves | Count |
 | --- | --- | --- |
-| Domain unit | invariants, grouping, progress, prompt rules, insight freshness | 96 |
-| Use case unit | every use case against hand written fakes, including the insight store | 51 |
-| Infrastructure unit | mappers, HTTP adapter, cache, provider chain, heuristic, config, composition | 166 |
-| Presentation + integration | app factory and lifespan, session, the real ASGI contract, real PostgreSQL repositories | 55 |
+| Domain unit | invariants, grouping, progress, prompt rules, insight freshness | 97 |
+| Use case unit | every use case against hand written fakes, including the insight store | 58 |
+| Infrastructure unit | mappers, HTTP adapter, cache, provider chain, heuristic, config, composition | 170 |
+| Presentation + integration | app factory and lifespan, session, the real ASGI contract, real PostgreSQL repositories | 61 |
 | System / E2E | the built bundle in Chromium against the real API and database | 11 |
 
 Fakes implement the real ports, so a port change breaks the suite instead of
@@ -256,9 +256,9 @@ size. The exception is documented as D1.
 **"Show me what you would change if this went to production."**
 
 `docs/TRADEOFFS.md` §"If this went to production": OIDC instead of the cookie,
-OpenTelemetry around both adapters, Redis for the cache, a local catalogue sync,
-OpenAPI-generated TypeScript, and migrations as a separate job rather than in the
-entrypoint.
+OpenTelemetry around both adapters, Redis for the cache, a local catalogue sync, and
+migrations as a separate job rather than in the entrypoint. The TypeScript client is
+already generated from OpenAPI (D11).
 
 **"Is the rule based provider cheating?"**
 
@@ -267,10 +267,12 @@ itself `degraded` and explains itself in `notes`. It exists so the feature is
 demonstrable where no credentials exist - which is the requirement, not a shortcut.
 When a token is present, HuggingFace or OpenRouter answers first.
 
-**"Why not generate the frontend types from OpenAPI?"**
+**"How is the frontend kept in sync with the API?"**
 
-Nine stable response models; a hand written client is readable and needs no build
-step. It is listed as the first thing to automate (D11).
+It is generated, not hand-synced: the backend dumps `openapi.json`
+(`make openapi`), `openapi-typescript` turns it into `schema.d.ts` (`make client`),
+and CI fails if either drifts. Swagger UI is served at `/api-docs` for the same
+document. See D11.
 
 **"How do you know the migration matches the models?"**
 

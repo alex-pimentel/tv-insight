@@ -1,114 +1,29 @@
 /**
- * The API contract, mirrored by `presentation/api/schemas.py`.
+ * The API contract, derived from the backend's OpenAPI document.
  *
- * Keeping the two in sync is deliberate and cheap for a project this size; the
- * alternative (generating the client from the OpenAPI document) would be the next
- * step and is noted in docs/TRADE-OFFS.md.
+ * `schema.d.ts` is generated (`make client`) from `openapi.json`, which the
+ * backend dumps from its own FastAPI app (`make openapi`). This module only gives
+ * the generated schemas stable, readable names, so the wire format has a single
+ * source of truth instead of two hand-synchronised files.
+ *
+ * The response properties are required in the generated types because the server
+ * always emits every field (`null` when absent); request bodies keep their real
+ * optionality. See `scripts/generate-api.mjs` for the exact rule.
  */
 
-export interface SeriesCard {
-  id: number;
-  name: string;
-  year: number | null;
-  poster_url: string | null;
-  poster_thumbnail_url: string | null;
-  genres: string[];
-  status: string | null;
-  rating: number | null;
-  network: string | null;
-  language: string | null;
-}
+import type { components } from "./schema";
 
-export interface Episode {
-  id: number;
-  name: string;
-  season: number;
-  number: number;
-  code: string;
-  summary: string;
-  airdate: string | null;
-  runtime_minutes: number | null;
-  image_url: string | null;
-  watched: boolean;
-}
+type Schemas = components["schemas"];
 
-export interface Season {
-  number: number;
-  label: string;
-  episodes: Episode[];
-  watched: number;
-  total: number;
-  progress: number;
-}
-
-export interface Comment {
-  id: string;
-  target: "series" | "episode";
-  series_id: number;
-  episode_id: number | null;
-  episode_code: string | null;
-  text: string;
-  created_at: string;
-  author: string;
-  mine: boolean;
-}
-
-export interface SearchResponse {
-  query: string;
-  count: number;
-  results: SeriesCard[];
-}
-
-export interface SeriesDetail {
-  series: SeriesCard;
-  summary: string;
-  seasons: Season[];
-  watched: number;
-  total_episodes: number;
-  progress: number;
-  comment_count: number;
-  comments: Comment[];
-}
-
-export interface EpisodeDetail {
-  series: SeriesCard;
-  episode: Episode;
-  comment_count: number;
-  comments: Comment[];
-  next_episode: Episode | null;
-}
-
-export interface Insight {
-  text: string;
-  provider: string;
-  degraded: boolean;
-  cached: boolean;
-  generated_at: string | null;
-  target: string;
-  target_id: number;
-  based_on_comment_count: number;
-  notes: string[];
-}
-
-export interface Session {
-  kind: string;
-}
-
-export interface ProviderStatus {
-  provider: string;
-  available: boolean;
-  /** The configured model, when the provider has one. */
-  model?: string | null;
-}
-
-export interface Health {
-  status: string;
-  version: string;
-  database: string;
-  insights: ProviderStatus[];
-}
-
-export interface ApiErrorBody {
-  error: string;
-  detail?: string | null;
-}
+export type SeriesCard = Schemas["SeriesCardModel"];
+export type Episode = Schemas["EpisodeModel"];
+export type Season = Schemas["SeasonModel"];
+export type Comment = Schemas["CommentModel"];
+export type SearchResponse = Schemas["SearchResponse"];
+export type SeriesDetail = Schemas["SeriesDetailModel"];
+export type EpisodeDetail = Schemas["EpisodeDetailModel"];
+export type Insight = Schemas["InsightsResponse"];
+export type Session = Schemas["SessionModel"];
+export type ProviderStatus = Schemas["ProviderStatus"];
+export type Health = Schemas["HealthModel"];
+export type ApiErrorBody = Schemas["ErrorModel"];

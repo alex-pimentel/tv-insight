@@ -9,9 +9,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Query, status
 
 from tv_insight.presentation.api.dependencies import ContainerDep, ViewerIdDep
+from tv_insight.presentation.api.responses import ERROR_RESPONSES
 from tv_insight.presentation.api.schemas import CommentModel, CommentRequest
 
-router = APIRouter(prefix="/series/{series_id}/comments", tags=["comments"])
+router = APIRouter(
+    prefix="/series/{series_id}/comments",
+    tags=["comments"],
+    responses=ERROR_RESPONSES,
+)
 
 
 @router.get("", response_model=list[CommentModel], summary="List comments")

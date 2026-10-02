@@ -5,13 +5,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from tv_insight.presentation.api.dependencies import ContainerDep, ViewerIdDep
+from tv_insight.presentation.api.responses import ERROR_RESPONSES
 from tv_insight.presentation.api.schemas import (
     SearchResponse,
     SeriesCardModel,
     SeriesDetailModel,
 )
 
-router = APIRouter(prefix="/series", tags=["series"])
+router = APIRouter(prefix="/series", tags=["series"], responses=ERROR_RESPONSES)
 
 
 @router.get("/search", response_model=SearchResponse, summary="Search TV series")

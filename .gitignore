@@ -21,6 +21,10 @@ frontend/coverage/
 frontend/playwright-report/
 frontend/test-results/
 
+# ---- Mutation testing ----
+backend/mutants/
+backend/.mutmut-cache
+
 # ---- Runtime ----
 *.log
 .env

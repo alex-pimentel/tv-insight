@@ -194,19 +194,24 @@ API is tested without network, database or LLM.
 
 ---
 
-### D11 - The frontend API types are written by hand
+### D11 - The frontend API types are generated from the OpenAPI document
 
-**Chosen.** `frontend/src/api/types.ts` mirrors `presentation/api/schemas.py`.
+**Chosen.** `frontend/src/api/schema.d.ts` is generated (`make client`) from
+`frontend/openapi.json`, which the backend dumps from its own app with
+`make openapi` (`python -m tv_insight.presentation.openapi`). `types.ts` only
+renames the generated schemas for the rest of the app.
 
-**Rejected:** generating the client from `/api/openapi.json` (would need a
-generator in the build).
+**Rejected:** hand-writing the types next to `presentation/api/schemas.py`. It is
+readable, but the two files drift and the drift is silent.
 
-**Why.** The contract is nine response models and stable. A hand written client is
-readable and has no build step.
+**Why.** The contract now has a single machine-readable source of truth, and CI
+fails when it drifts: `npm run client:check` regenerates and compares, and the
+backend job diffs a fresh dump against the committed `openapi.json`.
 
-**Cost.** The two files can drift. Mitigated by the integration tests asserting the
-JSON contract, and this is the first thing to automate (openapi-typescript) if the
-API grows.
+**Cost.** One build step (`openapi-typescript`, a dev dependency) and one rule the
+generator applies: response properties are all required, because FastAPI always
+emits the full object (`null` for absent values). Request bodies keep the schema's
+own optionality, so `episode_id` stays optional where it truly is.
 
 ---
 
@@ -367,6 +372,7 @@ Both are recorded in §"If this went to production".
    shared across replicas; the ports do not change.
 4. **Catalogue**: persist shows and episodes locally (nightly sync) to remove the
    upstream dependency from the read path, and keep the gateway port.
-5. **Contract**: generate the TypeScript client from the OpenAPI document.
+5. **Contract**: the client is already generated (D11); the next step is typed,
+   error-aware calls and pagination once list endpoints need it.
 6. **Delivery**: promote the image by digest, run migrations as a separate job
    rather than in the entrypoint, and add a canary stage.
