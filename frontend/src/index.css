@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/*
+ * Dark mode is driven by a class on <html> (set before first paint by the inline
+ * script in index.html), not by `prefers-color-scheme`, so the user can override
+ * the system preference and the choice can be persisted.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Semantic tokens. The values live on :root (light) and are overridden by .dark;
+ * the utilities below resolve to the variables *at use time* (`@theme inline`), so
+ * flipping one class re-themes the whole app without touching React.
+ *
+ * Naming: `surface` is the page, `card` is a raised panel, `line` is a border,
+ * `ink` is primary text, `muted` is secondary text, `overlay` is the translucent
+ * tint used for chips and inner panels.
+ */
+:root {
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-hover: #f4f4f5;
+  --line: #e4e4e7;
+  --overlay: rgb(9 9 11 / 0.04);
+  --ink: #09090b;
+  --muted: #52525b;
+  --accent: #6d4aff;
+  --accent-soft: #5a37d6;
+}
+
+.dark {
+  --surface: #000000;
+  --card: #0b0b0c;
+  --card-hover: #17171a;
+  --line: #26262b;
+  --overlay: rgb(255 255 255 / 0.06);
+  --ink: #f4f4f5;
+  --muted: #9a9aa3;
+  --accent: #7c5cff;
+  --accent-soft: #a48bff;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-line: var(--line);
+  --color-overlay: var(--overlay);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface text-ink antialiased;
+}
+
+/* ---------------------------------------------------------------------------
+ * Motion
+ *
+ * Two small animations for generated content. They live behind
+ * `prefers-reduced-motion: no-preference` instead of being applied unconditionally,
+ * so someone who asked their system not to animate gets a still (but complete) UI
+ * without every call site having to remember a `motion-reduce:` variant.
+ * ------------------------------------------------------------------------- */
+@keyframes tv-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tv-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-fade-up {
+    animation: tv-fade-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-shimmer {
+    animation: tv-shimmer 1.4s ease-in-out infinite;
+  }
+}

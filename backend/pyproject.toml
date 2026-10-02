@@ -1,0 +1,89 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tv-insight"
+version = "1.0.0"
+description = "Interactive TV series experience: search, tracking, comments and AI insights on top of the TVMaze API."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Software Architect Technical Assignment" }]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "httpx>=0.27.2",
+    "pydantic>=2.9.2",
+    "pydantic-settings>=2.5.2",
+    "sqlalchemy[asyncio]>=2.0.35",
+    "asyncpg>=0.30.0",
+    "alembic>=1.13.3",
+    "tenacity>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.27.2",
+    "respx>=0.21.1",
+    "ruff>=0.7.0",
+    "mypy>=1.11.2",
+]
+
+[project.scripts]
+tv-insight = "tv_insight.presentation.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tv_insight"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/tv_insight"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --strict-markers"
+markers = [
+    "integration: exercises the HTTP interface end to end (no network)",
+]
+
+[tool.coverage.run]
+source = ["tv_insight"]
+branch = false
+
+[tool.coverage.report]
+# Lines that are unreachable by a test, with the reason:
+#   - `if __name__ == "__main__"` only runs when the module is executed directly;
+#   - declarations whose body is a single `...` (abstract ports / protocols);
+#   - explicit `pragma: no cover` escapes.
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "^\\.\\.\\.$",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "ARG", "PTH", "RET", "PIE"]
+# N818: domain errors are named for the concept (``NotFound``, ``InvalidValue``)
+# rather than suffixed with ``Error``; the module they live in already says so.
+ignore = ["B008", "N818"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ARG001", "ARG002"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["tv_insight"]
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]

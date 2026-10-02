@@ -1,0 +1,104 @@
+# Docker Compose file format 3.3, as required by the assignment.
+#
+# The `version` key is accepted (and ignored with a warning) by Compose v2+; it is
+# kept deliberately so the file matches the requested schema. Everything below is
+# v2-compatible and runs unchanged with `docker compose up`.
+version: "3.3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tvinsight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tvinsight}
+      POSTGRES_DB: ${POSTGRES_DB:-tvinsight}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tvinsight} -d ${POSTGRES_DB:-tvinsight}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # Uncomment to inspect the database from the host.
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_PORT: ${APP_PORT:-7777}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
+
+      POSTGRES_USER: ${POSTGRES_USER:-tvinsight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tvinsight}
+      POSTGRES_DB: ${POSTGRES_DB:-tvinsight}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DATABASE_URL: ${DATABASE_URL:-}
+
+      TVMAZE_BASE_URL: ${TVMAZE_BASE_URL:-https://api.tvmaze.com}
+      TVMAZE_TIMEOUT_SECONDS: ${TVMAZE_TIMEOUT_SECONDS:-5}
+      TVMAZE_CACHE_TTL_SECONDS: ${TVMAZE_CACHE_TTL_SECONDS:-300}
+      TVMAZE_MAX_RETRIES: ${TVMAZE_MAX_RETRIES:-2}
+
+      AI_PROVIDER_ORDER: ${AI_PROVIDER_ORDER:-huggingface,heuristic}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-20}
+      AI_INSIGHT_COMMENT_THRESHOLD: ${AI_INSIGHT_COMMENT_THRESHOLD:-0}
+      AI_INSIGHT_CACHE_TTL_SECONDS: ${AI_INSIGHT_CACHE_TTL_SECONDS:-0}
+      HUGGINGFACE_API_TOKEN: ${HUGGINGFACE_API_TOKEN:-}
+      HUGGINGFACE_MODEL: ${HUGGINGFACE_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+      HUGGINGFACE_BASE_URL: ${HUGGINGFACE_BASE_URL:-https://router.huggingface.co/v1}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+    ports:
+      - "${APP_PORT:-7777}:${APP_PORT:-7777}"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -fsS http://localhost:${APP_PORT:-7777}/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Browser tests against the running stack. Behind a profile so `docker compose up`
+  # stays the single command for the application itself:
+  #     docker compose --profile test run --rm e2e      (or: make test-e2e)
+  #
+  # It joins the application's network namespace on purpose: Chromium upgrades
+  # plain HTTP navigations to HTTPS for non-loopback hosts, which breaks against a
+  # container hostname. Sharing the namespace lets the suite use
+  # http://localhost:7777 and exercise the very same process and port.
+  e2e:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    network_mode: "service:app"
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      E2E_BASE_URL: http://localhost:7777
+      CI: "true"
+    volumes:
+      # Specs and config are mounted so editing a test does not require rebuilding
+      # the image; node_modules and the browsers stay inside it.
+      - ./frontend/e2e:/work/e2e
+      - ./frontend/playwright.config.ts:/work/playwright.config.ts
+      - ./frontend/playwright-report:/work/playwright-report
+      - ./frontend/test-results:/work/test-results
+
+volumes:
+  pgdata:

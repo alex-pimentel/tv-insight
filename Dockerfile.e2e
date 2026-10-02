@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1
+#
+# End to end test image.
+#
+# The official Playwright image already ships the browsers *and* their system
+# libraries, which is the difference between a suite that runs in CI and one that
+# only runs on the author's laptop. The tag is pinned to the @playwright/test
+# version declared in frontend/package.json.
+FROM mcr.microsoft.com/playwright:v1.63.0-noble
+
+WORKDIR /work
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY frontend/ ./
+
+ENV E2E_BASE_URL=http://localhost:7777 \
+    CI=true
+
+CMD ["npx", "playwright", "test"]

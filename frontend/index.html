@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Search TV series, track episodes, comment and read AI insights." />
+    <title>tv-insight</title>
+    <script>
+      // Applies the stored theme (or the system preference) before the first paint
+      // so the page never flashes the wrong palette. Kept inline and dependency
+      // free on purpose; the React toggle only mirrors this state afterwards.
+      (function () {
+        try {
+          var stored = localStorage.getItem("tv-insight-theme");
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var dark = stored ? stored === "dark" : prefersDark;
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (error) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
